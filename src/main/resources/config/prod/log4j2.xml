@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <Properties>
+        <Property name="log4j2.contextSelector">org.apache.logging.log4j.core.async.AsyncLoggerContextSelector</Property>
+        <Property name="log4j2.formatMsgNoLookups">true</Property>
+    </Properties>
+
+    <Appenders>
+        <RollingRandomAccessFile name="FILE"
+                                 fileName="${sys:user.home}/logs/steve.log"
+                                 filePattern="${sys:user.home}/logs/steve-%d{yyyy-MM-dd}-%i.log.gz"
+                                 immediateFlush="false"
+                                 append="true">
+            <PatternLayout pattern="| %-5p | %-23d{yyyy-MM-dd'T'HH:mm:ss}{UTC} | %-40c | %-18t | %-16X{chargeBoxId} | %-36X{sessionId} | %-15X{messageType} | %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+        </RollingRandomAccessFile>
+
+    </Appenders>
+
+    <Loggers>
+        <!-- Disable the Jooq logo in logs -->
+        <!-- https://github.com/jOOQ/jOOQ/issues/4019 -->
+        <AsyncLogger name="org.jooq.Constants" level="WARN"/>
+
+        <AsyncLogger name="org.apache.jasper" level="WARN"/>
+        <AsyncLogger name="org.apache.tomcat.util" level="WARN"/>
+        <AsyncLogger name="jndi" level="WARN"/>
+
+        <AsyncRoot level="INFO">
+            <AppenderRef ref="FILE"/>
+        </AsyncRoot>
+    </Loggers>
+</Configuration>
