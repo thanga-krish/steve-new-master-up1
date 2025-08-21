@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@ import de.rwth.idsg.steve.ocpp.ws.pipeline.IncomingPipeline;
 import de.rwth.idsg.steve.repository.OcppServerRepository;
 import de.rwth.idsg.steve.service.notification.OcppStationWebSocketConnected;
 import de.rwth.idsg.steve.service.notification.OcppStationWebSocketDisconnected;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -60,6 +61,7 @@ public abstract class AbstractWebSocketEndpoint extends ConcurrentWebSocketHandl
     @Autowired private OcppServerRepository ocppServerRepository;
     @Autowired private FutureResponseContextStore futureResponseContextStore;
     @Autowired private ApplicationEventPublisher applicationEventPublisher;
+
 
     public static final String CHARGEBOX_ID_KEY = "CHARGEBOX_ID_KEY";
 

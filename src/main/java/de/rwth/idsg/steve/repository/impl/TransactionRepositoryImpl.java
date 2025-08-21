@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -33,20 +33,19 @@ import org.joda.time.DateTime;
 import org.jooq.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import de.rwth.idsg.steve.myconfig.Converter.JooqConverters;
 
 import java.io.Writer;
-import java.lang.Record;
 import java.util.List;
 
 import static de.rwth.idsg.steve.utils.CustomDSL.date;
-import static java.util.GregorianCalendar.from;
 import static jooq.steve.db.tables.ChargeBox.CHARGE_BOX;
 import static jooq.steve.db.tables.Connector.CONNECTOR;
 import static jooq.steve.db.tables.ConnectorMeterValue.CONNECTOR_METER_VALUE;
 import static jooq.steve.db.tables.OcppTag.OCPP_TAG;
 import static jooq.steve.db.tables.Transaction.TRANSACTION;
 import static jooq.steve.db.tables.TransactionStart.TRANSACTION_START;
-import static org.jooq.GeneratorStatementType.SELECT;
+
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -184,7 +183,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
 
         Table<ConnectorMeterValueRecord> t1 = transactionQuery.union(timestampQuery).asTable("t1");
 
-        Field<DateTime> dateTimeField = t1.field(2, DateTime.class);
+        Field<DateTime> dateTimeField = t1.field(2, JooqConverters.JODA_TIMESTAMP);
 
         List<TransactionDetails.MeterValues> values =
                 ctx.select(

@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -118,6 +118,19 @@ public class SecurityConfiguration {
             .build();
     }
 
+    // ✅ NEW: Allow unrestricted access to /test/** for local testing (e.g. Postman)
+    @Bean
+    @Order(0) // Highest priority
+    public SecurityFilterChain testEndpointSecurity(HttpSecurity http) throws Exception {
+        return http
+                .antMatcher("/api/test-schedule") // Match only /test/** paths
+                .csrf().disable() // Disable CSRF for testing POSTs
+                .authorizeHttpRequests()
+                .anyRequest().permitAll()
+                .and()
+                .build();
+    }
+
     @Bean
     @Order(1)
     public SecurityFilterChain apiKeyFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
@@ -152,6 +165,7 @@ public class SecurityConfiguration {
             setAuthenticationManager(this);
 
             headerKey = CONFIG.getWebApi().getHeaderKey();
+            System.out.println(">>> Received Header Value: " + headerKey);
             headerValue = CONFIG.getWebApi().getHeaderValue();
             isApiEnabled = !Strings.isNullOrEmpty(headerKey) && !Strings.isNullOrEmpty(headerValue);
 

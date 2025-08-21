@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,10 +23,12 @@ import de.rwth.idsg.steve.repository.OcppTagRepository;
 import de.rwth.idsg.steve.repository.dto.OcppTag.Overview;
 import de.rwth.idsg.steve.web.dto.OcppTagForm;
 import de.rwth.idsg.steve.web.dto.OcppTagQueryForm;
+import jooq.steve.db.tables.OcppTag;
 import jooq.steve.db.tables.OcppTagActivity;
 import jooq.steve.db.tables.records.OcppTagActivityRecord;
 import jooq.steve.db.tables.records.OcppTagRecord;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
 import org.jooq.DSLContext;
 import org.jooq.JoinType;
@@ -154,6 +156,20 @@ public class OcppTagRepositoryImpl implements OcppTagRepository {
         return ctx.select(OCPP_TAG.ID_TAG)
                   .from(OCPP_TAG)
                   .fetch(OCPP_TAG.ID_TAG);
+    }
+    @Override
+    public @Nullable OcppTag getByIdTag(String idTag) {
+        return ctx.selectFrom(OCPP_TAG)
+                .where(OCPP_TAG.ID_TAG.eq(idTag))
+                .fetchOneInto(OcppTag.class);
+    }
+
+    @Override
+    public List<String> getAllIdTags() {
+        return ctx.selectDistinct(OCPP_TAG.ID_TAG)
+                .from(OCPP_TAG)
+                .orderBy(OCPP_TAG.ID_TAG.asc())
+                .fetchInto(String.class);
     }
 
     @Override

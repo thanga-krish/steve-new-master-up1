@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@ import de.rwth.idsg.steve.repository.dto.OcppTag;
 import de.rwth.idsg.steve.web.dto.OcppTagForm;
 import de.rwth.idsg.steve.web.dto.OcppTagQueryForm;
 import jooq.steve.db.tables.records.OcppTagActivityRecord;
+import org.jetbrains.annotations.Nullable;
 import org.jooq.Result;
 
 import java.util.List;
@@ -49,4 +50,10 @@ public interface OcppTagRepository {
     int addOcppTag(OcppTagForm form);
     void updateOcppTag(OcppTagForm form);
     void deleteOcppTag(int ocppTagPk);
+
+    jooq.steve.db.tables.@Nullable OcppTag getByIdTag(String idTag);
+
+    List<String> getAllIdTags();
+
+
 }

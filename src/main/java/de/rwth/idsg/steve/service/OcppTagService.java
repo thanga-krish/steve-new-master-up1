@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -67,6 +67,11 @@ public class OcppTagService {
     public List<String> getIdTags() {
         return ocppTagRepository.getIdTags();
     }
+
+    public List<String> getAllIdTags() {
+        return ocppTagRepository.getAllIdTags();
+    }
+
 
     public List<String> getActiveIdTags() {
         return ocppTagRepository.getActiveIdTags();

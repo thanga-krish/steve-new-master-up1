@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,13 +27,11 @@ import de.rwth.idsg.steve.repository.dto.ChargePointSelect;
 import de.rwth.idsg.steve.web.dto.ocpp.RemoteStopTransactionParams;
 import ocpp.cs._2015._10.MeterValue;
 import ocpp.cs._2015._10.SampledValue;
-
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -54,11 +52,17 @@ public class WalletMonitorService {
     @Autowired
     private TaskStore taskStore;
     @Autowired
+    @Lazy
     private ChargePointService16_InvokerImpl cpsImpl;
     @Autowired
     RestTemplate restTemplate;
 
+    @Autowired
+    private CustomStopReasonStore customStopReasonStore;
+
     private final Map<Integer, Double> lastEnergyMap = new ConcurrentHashMap<>();
+
+    private final Map<Integer, String> customReason = new HashMap<>();
 
     public void checkAndStopIfLowBalance(List<MeterValue> list, Integer transactionId, int connectorPk) {
 
@@ -72,8 +76,8 @@ public class WalletMonitorService {
                 .where(TRANSACTION_START.TRANSACTION_PK.eq(transactionId))
                 .fetchOne(TRANSACTION_START.ID_TAG);
 
-        String apiUrl = "http://localhost:8080/api/wallet";
-//        Map<String, String> uriVars = new HashMap<>();
+        String apiUrl = "http://15.207.37.132/flutter/newlive_view.php?transid=506&conqr=FTCT000579";
+  //      Map<String, String> uriVars = new HashMap<>();
 //        uriVars.put("idTag", idTag);
         WalletAndTariff response = restTemplate.getForEntity(apiUrl, WalletAndTariff.class).getBody();
         double walletAmount = response.getWalletAmount();
@@ -91,7 +95,7 @@ public class WalletMonitorService {
                     .fetchOne(TRANSACTION_METER_VALUES.TRANSACTION_PK);
 
             if (previousTransactionPk == null) {
-                System.out.println("⚠️ No previous transaction found — setting lastEnergy = 0.0");
+                System.out.println("No previous transaction found — setting lastEnergy = 0.0");
                 return 0.0;
             }
 
@@ -159,8 +163,12 @@ public class WalletMonitorService {
 
             double totalAmount = calculateAndUpdateGst(lastEnergy, currentEnergy, transactionId, tariffRate);
 
+//            tariffSessionCost.tariffAndGstUpdate(chargeBoxId, connectorPk, transactionId, tariffRate);
+
             if (totalAmount > walletAmount) {
-                System.out.println("⚠️ Unitfare exceeded the wallet amount, triggering RemoteStopTransaction");
+                System.out.println("Unitfare exceeded the wallet amount, triggering RemoteStopTransaction");
+
+                customStopReasonStore.putReason(transactionId, "LowBalance");
 
                 ChargePointSelect cps = new ChargePointSelect(OcppTransport.JSON, chargeBoxId);
 
@@ -188,32 +196,26 @@ public class WalletMonitorService {
 
     private double calculateAndUpdateGst(double lastEnergy, double currentEnergy, int transactionId, double tariffRate) {
 
-//        double ratePerKWh = 3000.0; // ₹ per kWh
-        double gstRate = 18.0;    // %
 
-        double rawEnergy = currentEnergy - lastEnergy;
-        System.out.println("LastEnergy: " + lastEnergy);
-        System.out.println("CurrentEnergy: " + currentEnergy);
-        double energy = rawEnergy < 0 ? 0 : rawEnergy;
-        double energyKWh = energy / 1000.0;
-        double energyCost = energyKWh * tariffRate;
-        double gstAmount = energyCost * gstRate / 100.0;
-        double totalAmount = energyCost + gstAmount;
+//        double ratePerKWh = 30.0; // ₹ per kWh
+            double gstRate = 18.0;    // %
 
-        System.out.println("Energy Used (kWh): " + energyKWh);
-        System.out.println("Energy Cost: ₹" + energyCost);
-        System.out.println("GST: ₹" + gstAmount);
-        System.out.println("Total with GST: ₹" + totalAmount);
+            double rawEnergy = currentEnergy - lastEnergy;
+            double energy = rawEnergy < 0 ? 0 : rawEnergy;
+            double energyKWh = energy / 1000.0;
+            double energyCost = energyKWh * tariffRate;
+            double gstAmount = energyCost * gstRate / 100.0;
+            double totalAmount = energyCost + gstAmount;
 
-        ctx.update(TRANSACTION_METER_VALUES)
-                .set(TRANSACTION_METER_VALUES.GST_AMOUNT, gstAmount)
-                .set(TRANSACTION_METER_VALUES.TOTAL_AMOUNT, totalAmount)
-                .where(TRANSACTION_METER_VALUES.TRANSACTION_PK.eq(transactionId))
-                .orderBy(TRANSACTION_METER_VALUES.EVENT_TIMESTAMP.desc())
-                .limit(1)
-                .execute();
+            ctx.update(TRANSACTION_METER_VALUES)
+                    .set(TRANSACTION_METER_VALUES.GST_AMOUNT, gstAmount)
+                    .set(TRANSACTION_METER_VALUES.TOTAL_AMOUNT, totalAmount)
+                    .where(TRANSACTION_METER_VALUES.TRANSACTION_PK.eq(transactionId))
+                    .orderBy(TRANSACTION_METER_VALUES.EVENT_TIMESTAMP.desc())
+                    .limit(1)
+                    .execute();
 
-        return totalAmount;
+            return totalAmount;
     }
 
     public void triggerRemoteStopTransaction(String chargeBoxId, int transactionId) {
@@ -236,7 +238,6 @@ public class WalletMonitorService {
         taskStore.add(task);
 
     }
-
 }
 
 

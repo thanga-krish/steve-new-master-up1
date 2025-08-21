@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@ import de.rwth.idsg.steve.ocpp.ws.FutureResponseContextStore;
 import de.rwth.idsg.steve.ocpp.ws.pipeline.AbstractCallHandler;
 import de.rwth.idsg.steve.ocpp.ws.pipeline.Deserializer;
 import de.rwth.idsg.steve.ocpp.ws.pipeline.IncomingPipeline;
+import de.rwth.idsg.steve.service.ScheduledChargingServiceup;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import ocpp.cs._2010._08.AuthorizeRequest;
@@ -56,6 +57,7 @@ public class Ocpp12WebSocketEndpoint extends AbstractWebSocketEndpoint {
     @Autowired private CentralSystemService12_SoapServer server;
     @Autowired private FutureResponseContextStore futureResponseContextStore;
     private Map<String, WebSocketConnection> clientMap;
+    @Autowired private ScheduledChargingServiceup scheduledCharging;
 
     @PostConstruct
     public void init() {
@@ -90,6 +92,7 @@ public class Ocpp12WebSocketEndpoint extends AbstractWebSocketEndpoint {
 
             } else if (params instanceof StatusNotificationRequest) {
                 r = server.statusNotification((StatusNotificationRequest) params, chargeBoxId);
+
 
             } else if (params instanceof MeterValuesRequest) {
                 r = server.meterValues((MeterValuesRequest) params, chargeBoxId);

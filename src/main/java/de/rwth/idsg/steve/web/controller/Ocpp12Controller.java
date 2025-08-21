@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
 package de.rwth.idsg.steve.web.controller;
 
 import de.rwth.idsg.steve.ocpp.OcppVersion;
+import de.rwth.idsg.steve.repository.ChargePointRepository;
 import de.rwth.idsg.steve.service.ChargePointHelperService;
 import de.rwth.idsg.steve.service.ChargePointService12_Client;
 import de.rwth.idsg.steve.service.OcppTagService;
@@ -57,6 +58,7 @@ public class Ocpp12Controller {
 
     @Autowired protected ChargePointHelperService chargePointHelperService;
     @Autowired protected OcppTagService ocppTagService;
+    @Autowired private ChargePointRepository chargePointRepository;
 
     @Autowired
     @Qualifier("ChargePointService12_Client")
@@ -154,9 +156,19 @@ public class Ocpp12Controller {
 
     @RequestMapping(value = REMOTE_START_TX_PATH, method = RequestMethod.GET)
     public String getRemoteStartTx(Model model) {
+        // Load all chargeBoxIds for dropdown
+        model.addAttribute("cpList", chargePointRepository.getChargeBoxIds());
+
+        // Load ALL idTags, including those currently in transaction
+        model.addAttribute("idTagList", ocppTagService.getAllIdTags());
+
+        // Other common attributes (like connector list, etc.)
         setCommonAttributesForTx(model);
-        setActiveUserIdTagList(model);
+
+        // Form binding model
         model.addAttribute(PARAMS, new RemoteStartTransactionParams());
+
+        // Return JSP path
         return getPrefix() + REMOTE_START_TX_PATH;
     }
 
@@ -282,5 +294,10 @@ public class Ocpp12Controller {
             return getPrefix() + UPDATE_FIRM_PATH;
         }
         return REDIRECT_TASKS_PATH + getClient12().updateFirmware(params);
+    }
+
+    private void initList(Model model) {
+        model.addAttribute("cpList", chargePointRepository.getChargeBoxIds());
+        model.addAttribute("idTagList", ocppTagService.getAllIdTags());
     }
 }

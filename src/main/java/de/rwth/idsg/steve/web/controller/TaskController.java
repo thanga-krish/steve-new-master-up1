@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -93,6 +93,8 @@ public class TaskController {
         RequestResult result = extractResult(k, chargeBoxId);
         GetCompositeScheduleResponse response = result.getDetails();
 
+        System.out.println("Response: " + response);
+
         model.addAttribute("chargeBoxId", chargeBoxId);
         model.addAttribute("response", response);
         return "op16/GetCompositeScheduleResponse";
@@ -101,6 +103,8 @@ public class TaskController {
     private String processForGetConfigurationTask(GetConfigurationTask k, String chargeBoxId, Model model) {
         RequestResult result = extractResult(k, chargeBoxId);
         GetConfigurationTask.ResponseWrapper response = result.getDetails();
+
+        System.out.println("Response: " + response);
 
         model.addAttribute("chargeBoxId", chargeBoxId);
         model.addAttribute("response", response);

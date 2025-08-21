@@ -18,11 +18,8 @@
  */
 package de.rwth.idsg.steve.service;
 
-
-import de.rwth.idsg.steve.myconfig.AutoChargeService;
 import de.rwth.idsg.steve.repository.OcppTagRepository;
 import de.rwth.idsg.steve.repository.SettingsRepository;
-
 import jooq.steve.db.tables.records.OcppTagActivityRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +27,6 @@ import ocpp.cs._2015._10.AuthorizationStatus;
 import ocpp.cs._2015._10.IdTagInfo;
 import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
-
-import org.junit.platform.commons.util.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import static de.rwth.idsg.steve.utils.OcppTagActivityRecordUtils.isBlocked;
@@ -42,27 +36,17 @@ import static de.rwth.idsg.steve.utils.OcppTagActivityRecordUtils.reachedLimitOf
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthTagServiceLocal implements AuthTagService {
+public class  AuthTagServiceLocal implements AuthTagService {
 
     private final OcppTagRepository ocppTagRepository;
     private final SettingsRepository settingsRepository;
-    @Autowired
-    private AutoChargeService autoChargeService; // ⬅️ Injected AutoCharge logic
 
     @Override
     public IdTagInfo decideStatus(String idTag, boolean isStartTransactionReqContext,
                                   @Nullable String chargeBoxId, @Nullable Integer connectorId) {
-
         OcppTagActivityRecord record = ocppTagRepository.getRecord(idTag);
-
         if (record == null) {
-            log.warn("New idTag '{}' detected. Not found in DB.", idTag);
-
-            // ⬇️ Send to PHP for first-time onboarding
-            if (StringUtils.isNotBlank(chargeBoxId)) {
-                autoChargeService.notifyNewIdTag(idTag, chargeBoxId);
-            }
-
+            log.error("The user with idTag '{}' is INVALID (not present in DB).", idTag);
             return new IdTagInfo().withStatus(AuthorizationStatus.INVALID);
         }
 
@@ -82,27 +66,16 @@ public class AuthTagServiceLocal implements AuthTagService {
                     .withExpiryDate(getExpiryDateOrDefault(record));
         }
 
-        if (isStartTransactionReqContext && reachedLimitOfActiveTransactions(record)) {
-            log.warn("The user with idTag '{}' is ALREADY in another transaction(s).", idTag);
-            return new IdTagInfo()
-                    .withStatus(AuthorizationStatus.CONCURRENT_TX)
-                    .withParentIdTag(record.getParentIdTag())
-                    .withExpiryDate(getExpiryDateOrDefault(record));
-        }
-
-        // ⬇️ Auto-start logic only on Authorize (not during StartTransaction)
-        if (!isStartTransactionReqContext) {
-            if (autoChargeService.isAutoChargeEnabled(idTag)) {
-                if (autoChargeService.hasSufficientBalance(idTag)) {
-                    autoChargeService.triggerRemoteStart(idTag, chargeBoxId);
-                } else {
-                    log.warn("Auto-charge blocked: Insufficient balance for idTag {}", idTag);
-                }
-            }
-        }
+//        // https://github.com/steve-community/steve/issues/219
+//        if (isStartTransactionReqContext && reachedLimitOfActiveTransactions(record)) {
+//            log.warn("The user with idTag '{}' is ALREADY in another transaction(s).", idTag);
+//            return new IdTagInfo()
+//                    .withStatus(AuthorizationStatus.CONCURRENT_TX)
+//                    .withParentIdTag(record.getParentIdTag())
+//                    .withExpiryDate(getExpiryDateOrDefault(record));
+//        }
 
         log.debug("The user with idTag '{}' is ACCEPTED.", record.getIdTag());
-
         return new IdTagInfo()
                 .withStatus(AuthorizationStatus.ACCEPTED)
                 .withParentIdTag(record.getParentIdTag())

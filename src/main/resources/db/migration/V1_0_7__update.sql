@@ -1,0 +1,7 @@
+CREATE TABLE user_account (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    primary_id_tag VARCHAR(50) NOT NULL UNIQUE,
+    wallet_balance DECIMAL(10,2) DEFAULT 0.00,
+    auto_charge_enabled BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

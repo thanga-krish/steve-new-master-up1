@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@ package de.rwth.idsg.steve.web.dto.ocpp;
 import de.rwth.idsg.steve.web.validation.IdTag;
 import lombok.Getter;
 import lombok.Setter;
+import ocpp.cp._2015._10.RemoteStartTransactionRequest;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -32,6 +33,7 @@ import javax.validation.constraints.NotBlank;
 @Getter
 public class RemoteStartTransactionParams extends SingleChargePointSelect {
 
+    public RemoteStartTransactionRequest request;
     @Min(value = 0, message = "Connector ID must be at least {value}")
     private Integer connectorId;
 

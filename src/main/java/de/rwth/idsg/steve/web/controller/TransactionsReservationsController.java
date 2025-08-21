@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -84,7 +84,7 @@ public class TransactionsReservationsController {
 
     @RequestMapping(value = TRANSACTION_STOP_PATH, method = RequestMethod.POST)
     public String stopTransaction(@PathVariable("transactionPk") int transactionPk) {
-        transactionStopService.stop(transactionPk);
+        transactionStopService.stopTransaction(transactionPk);
         return "redirect:/manager/transactions";
     }
 
@@ -145,7 +145,7 @@ public class TransactionsReservationsController {
 
     private void initList(Model model) {
         model.addAttribute("cpList", chargePointRepository.getChargeBoxIds());
-        model.addAttribute("idTagList", ocppTagService.getIdTags());
+        model.addAttribute("idTagList", ocppTagService.getAllIdTags());
     }
 
     private void initResList(Model model) {

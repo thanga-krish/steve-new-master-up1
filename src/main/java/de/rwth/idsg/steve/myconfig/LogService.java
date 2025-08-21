@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -84,14 +84,14 @@ public class LogService {
                     case 2: // CALL
                         event = root.get(2).asText();
 
-                        // ✅ Skip Heartbeat entirely
+                        // Skip Heartbeat entirely
                         if ("Heartbeat".equalsIgnoreCase(event)) {
                             return;
                         }
 
                         JsonNode payloadNode = root.get(3);
 
-                        // ✅ Skip MeterValues or StatusNotification if payload is empty
+                        // Skip MeterValues or StatusNotification if payload is empty
                         if (("MeterValues".equalsIgnoreCase(event) || "StatusNotification".equalsIgnoreCase(event))) {
                             if (payloadNode == null || payloadNode.isNull() ||
                                     (payloadNode.isObject() && !payloadNode.fieldNames().hasNext())) {
@@ -127,7 +127,7 @@ public class LogService {
 
                         JsonNode responseNode = root.get(2);
 
-                        // ✅ Skip MeterValues or StatusNotification if response is empty
+                        // Skip MeterValues or StatusNotification if response is empty
                         if (("MeterValues".equalsIgnoreCase(event) || "StatusNotification".equalsIgnoreCase(event))) {
                             if (responseNode == null || responseNode.isNull() ||
                                     (responseNode.isObject() && !responseNode.fieldNames().hasNext())) {

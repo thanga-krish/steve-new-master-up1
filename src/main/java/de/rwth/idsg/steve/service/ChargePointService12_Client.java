@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,9 @@
  */
 package de.rwth.idsg.steve.service;
 
+import de.rwth.idsg.steve.SteveException;
+
+import de.rwth.idsg.steve.myconfig.TariffSessionCost;
 import de.rwth.idsg.steve.ocpp.ChargePointService12_Invoker;
 import de.rwth.idsg.steve.ocpp.ChargePointService12_InvokerImpl;
 import de.rwth.idsg.steve.ocpp.OcppVersion;
@@ -31,6 +34,7 @@ import de.rwth.idsg.steve.ocpp.task.ResetTask;
 import de.rwth.idsg.steve.ocpp.task.UnlockConnectorTask;
 import de.rwth.idsg.steve.ocpp.task.UpdateFirmwareTask;
 import de.rwth.idsg.steve.repository.TaskStore;
+import de.rwth.idsg.steve.web.controller.DataTransferHandler;
 import de.rwth.idsg.steve.web.dto.ocpp.ChangeAvailabilityParams;
 import de.rwth.idsg.steve.web.dto.ocpp.ChangeConfigurationParams;
 import de.rwth.idsg.steve.web.dto.ocpp.GetDiagnosticsParams;
@@ -41,11 +45,15 @@ import de.rwth.idsg.steve.web.dto.ocpp.ResetParams;
 import de.rwth.idsg.steve.web.dto.ocpp.UnlockConnectorParams;
 import de.rwth.idsg.steve.web.dto.ocpp.UpdateFirmwareParams;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.concurrent.ScheduledExecutorService;
+import static jooq.steve.db.Tables.CONNECTOR;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -62,6 +70,14 @@ public class ChargePointService12_Client {
 
     @Autowired
     private ChargePointService12_InvokerImpl invoker12;
+    @Autowired
+    private DataTransferHandler dataTransferHandler;
+
+    @Autowired
+    private DSLContext ctx;
+    @Autowired
+    @Lazy
+    private TariffSessionCost tariffSessionCost;
 
     protected OcppVersion getVersion() {
         return OcppVersion.V_12;
@@ -140,8 +156,17 @@ public class ChargePointService12_Client {
     // -------------------------------------------------------------------------
 
     public int remoteStartTransaction(RemoteStartTransactionParams params) {
-        System.out.println("working.....");
+//        System.out.println(params.getIdTag() + "VID:TEST001");
+//
+//        String userIdTag = params.getIdTag();
+//        String vidIdTag = "VID:TEST001";
+
+//        dataTransferHandler.sendToPhp(userIdTag, vidIdTag);
+
+        // Create the task
         RemoteStartTransactionTask task = new RemoteStartTransactionTask(getVersion(), params);
+
+        // Execute the remote start
         BackgroundService.with(executorService)
                 .forFirst(task.getParams().getChargePointSelectList())
                 .execute(c -> getOcpp12Invoker().remoteStartTransaction(c, task));

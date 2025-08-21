@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@ import de.rwth.idsg.steve.web.dto.TransactionQueryForm;
 
 import java.io.Writer;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -37,4 +38,5 @@ public interface TransactionRepository {
     List<Integer> getActiveTransactionIds(String chargeBoxId);
 
     TransactionDetails getDetails(int transactionPk);
+
 }

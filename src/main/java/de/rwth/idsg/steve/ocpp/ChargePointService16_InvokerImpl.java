@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,8 +27,13 @@ import de.rwth.idsg.steve.ocpp.ws.ocpp16.Ocpp16WebSocketEndpoint;
 import de.rwth.idsg.steve.ocpp.ws.pipeline.OutgoingCallPipeline;
 import de.rwth.idsg.steve.repository.dto.ChargePointSelect;
 import ocpp.cp._2015._10.ChargePointService;
+import ocpp.cp._2015._10.RemoteStartTransactionResponse;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -37,11 +42,21 @@ import org.springframework.stereotype.Service;
 @Service
 public class ChargePointService16_InvokerImpl implements ChargePointService16_Invoker {
 
-    private final ChargePointServiceInvoker wsHelper;
-    private final ClientProviderWithCache<ChargePointService> soapHelper;
+    @Autowired
+    private OutgoingCallPipeline pipeline;
 
     @Autowired
-    public ChargePointService16_InvokerImpl(OutgoingCallPipeline pipeline, Ocpp16WebSocketEndpoint endpoint, ClientProvider clientProvider) {
+    @Lazy
+    private Ocpp16WebSocketEndpoint endpoint;
+
+    @Autowired
+    private ClientProvider clientProvider;
+
+    private ChargePointServiceInvoker wsHelper;
+    private ClientProviderWithCache<ChargePointService> soapHelper;
+
+    @PostConstruct
+    public void init() {
         this.wsHelper = new ChargePointServiceInvoker(pipeline, endpoint, Ocpp16TypeStore.INSTANCE);
         this.soapHelper = new ClientProviderWithCache<>(clientProvider);
     }
@@ -147,12 +162,13 @@ public class ChargePointService16_InvokerImpl implements ChargePointService16_In
     }
 
     @Override
-    public void remoteStartTransaction(ChargePointSelect cp, RemoteStartTransactionTask task) {
+    public CompletableFuture<RemoteStartTransactionResponse> remoteStartTransaction(ChargePointSelect cp, RemoteStartTransactionTask task) {
         if (cp.isSoap()) {
             create(cp).remoteStartTransactionAsync(task.getOcpp16Request(), cp.getChargeBoxId(), task.getOcpp16Handler(cp.getChargeBoxId()));
         } else {
             runPipeline(cp, task);
         }
+        return null;
     }
 
     @Override

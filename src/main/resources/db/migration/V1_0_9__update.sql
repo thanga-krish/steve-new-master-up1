@@ -1,0 +1,7 @@
+CREATE TABLE vehicle_mac (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    mac_address VARCHAR(50) NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_account(id) ON DELETE CASCADE
+);

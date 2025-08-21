@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,13 +28,17 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static jooq.steve.db.tables.AppLog.APP_LOG;
 
@@ -62,20 +66,39 @@ public class LogController {
         return "logs"; // Resolved as /WEB-INF/views/logs.jsp
     }
 
-    @RequestMapping(value = "/log", method = RequestMethod.GET)
+    @GetMapping("/log")
     public void log(HttpServletResponse response) {
         response.setContentType("text/plain");
 
         try (PrintWriter writer = response.getWriter()) {
-            Optional<Path> p = LogFileRetriever.INSTANCE.getPath();
-            if (p.isPresent()) {
-                Files.lines(p.get(), StandardCharsets.UTF_8)
-                     .forEach(writer::println);
+            Optional<Path> pathOptional = LogFileRetriever.INSTANCE.getPath();
+
+            if (pathOptional.isPresent()) {
+                Path logPath = pathOptional.get();
+
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        Files.newInputStream(logPath), StandardCharsets.UTF_8))) {
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        writer.println(line);
+                    }
+
+                } catch (MalformedInputException e) {
+                    writer.write("⚠️ Error: Log file contains invalid or non-UTF-8 characters.\n");
+                    writer.write("Suggestion: Open manually or delete the corrupted log.\n");
+                    log.error("MalformedInputException while reading log file", e);
+                } catch (IOException e) {
+                    writer.write("⚠️ Error reading log file.\n");
+                    log.error("IOException while reading log file", e);
+                }
+
             } else {
                 writer.write(LogFileRetriever.INSTANCE.getErrorMessage());
             }
+
         } catch (IOException e) {
-            log.error("Exception happened", e);
+            log.error("IOException while streaming log file to response", e);
         }
     }
 

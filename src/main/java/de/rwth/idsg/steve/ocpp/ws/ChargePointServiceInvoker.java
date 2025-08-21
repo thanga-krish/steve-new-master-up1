@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -76,22 +76,30 @@ public class ChargePointServiceInvoker {
         RequestType request = task.getRequest();
 
         ActionResponsePair pair = typeStore.findActionResponse(request);
-        ActionResponsePair pairNew= Ocpp16TypeStore.INSTANCE.findActionResponse(request);
-        if (pairNew == null  && pair==null) {
+        ActionResponsePair pairNew = Ocpp16TypeStore.INSTANCE.findActionResponse(request);
+        if (pairNew == null && pair == null) {
             throw new SteveException("Action name is not found");
         }
 
-        if (pairNew!=null && pair==null){
-            pair=pairNew;
+        if (pairNew != null && pair == null) {
+            pair = pairNew;
         }
 
-        if (!session.containsKey(chargeBoxId)) {
-            session.put(chargeBoxId, endpoint.getSession(chargeBoxId));
+        // Get or refresh session
+        WebSocketSession wsSession = session.computeIfAbsent(chargeBoxId, endpoint::getSession);
 
+        // ✅ Check if session is null or closed
+        if (wsSession == null || !wsSession.isOpen()) {
+            log.error("WebSocket session for {} is null or closed. Cannot send OCPP message.", chargeBoxId);
+            throw new SteveException("Cannot communicate with " + chargeBoxId + ": WebSocket is closed");
         }
+
+        // Debug session state (optional)
         session.forEach((key, value) -> {
             System.out.println("ChargeBoxId: " + key + " | Session open: " + (value != null && value.isOpen()));
         });
+
+        // Prepare OCPP call
         OcppJsonCall call = new OcppJsonCall();
         call.setMessageId(UUID.randomUUID().toString());
         call.setPayload(request);
@@ -99,11 +107,11 @@ public class ChargePointServiceInvoker {
 
         FutureResponseContext frc = new FutureResponseContext(task, pair.getResponseClass());
 
-        CommunicationContext context = new CommunicationContext(session.get(chargeBoxId), chargeBoxId);
+        CommunicationContext context = new CommunicationContext(wsSession, chargeBoxId);
         context.setOutgoingMessage(call);
         context.setFutureResponseContext(frc);
 
+        // Send the OCPP message
         outgoingCallPipeline.accept(context);
-
     }
 }

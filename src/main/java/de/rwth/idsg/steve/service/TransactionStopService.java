@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -77,6 +77,11 @@ public class TransactionStopService {
                                                                       .eventActor(TransactionStopEventActor.manual)
                                                                       .eventTimestamp(DateTime.now())
                                                                       .build());
+    }
+
+    public void stopTransaction(Integer transactionPk){
+        TransactionDetails thisTxDetails = transactionRepository.getDetails(transactionPk);
+        Transaction thisTx = thisTxDetails.getTransaction();
 
         walletMonitorService.triggerRemoteStopTransaction(thisTx.getChargeBoxId(), thisTx.getId());
     }

@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@
  */
 package de.rwth.idsg.steve.repository.impl;
 
+//import de.rwth.idsg.ocpp.jaxb.JodaDateTimeConverter;
 import de.rwth.idsg.steve.repository.GenericRepository;
 import de.rwth.idsg.steve.repository.ReservationStatus;
 import de.rwth.idsg.steve.repository.dto.DbVersion;
@@ -25,12 +26,12 @@ import de.rwth.idsg.steve.utils.DateTimeUtils;
 import de.rwth.idsg.steve.web.dto.Statistics;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.DateTime;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.Record2;
-import org.jooq.Record8;
+import org.jooq.*;
+import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import de.rwth.idsg.steve.myconfig.JodaDateTimeConverter;
 
 import static de.rwth.idsg.steve.utils.CustomDSL.date;
 import static jooq.steve.db.Tables.RESERVATION;
@@ -54,6 +55,10 @@ public class GenericRepositoryImpl implements GenericRepository {
 
     @Override
     public Statistics getStats() {
+
+        // Fix: define explicit DataType for Joda DateTime
+        DataType<DateTime> jodaDateTimeType = SQLDataType.TIMESTAMP.asConvertedDataType(new JodaDateTimeConverter());
+
         DateTime now = DateTime.now();
         DateTime yesterdaysNow = now.minusDays(1);
 
@@ -87,21 +92,21 @@ public class GenericRepositoryImpl implements GenericRepository {
 
         Field<Integer> heartbeatsToday =
                 ctx.selectCount()
-                   .from(CHARGE_BOX)
-                   .where(date(CHARGE_BOX.LAST_HEARTBEAT_TIMESTAMP).eq(date(now)))
-                   .asField("heartbeats_today");
+                        .from(CHARGE_BOX)
+                        .where(date(CHARGE_BOX.LAST_HEARTBEAT_TIMESTAMP).eq(date(DSL.val(now, jodaDateTimeType))))
+                        .asField("heartbeats_today");
 
         Field<Integer> heartbeatsYesterday =
                 ctx.selectCount()
-                   .from(CHARGE_BOX)
-                   .where(date(CHARGE_BOX.LAST_HEARTBEAT_TIMESTAMP).eq(date(yesterdaysNow)))
-                   .asField("heartbeats_yesterday");
+                        .from(CHARGE_BOX)
+                        .where(date(CHARGE_BOX.LAST_HEARTBEAT_TIMESTAMP).eq(date(DSL.val(yesterdaysNow, jodaDateTimeType))))
+                        .asField("heartbeats_yesterday");
 
         Field<Integer> heartbeatsEarlier =
                 ctx.selectCount()
-                   .from(CHARGE_BOX)
-                   .where(date(CHARGE_BOX.LAST_HEARTBEAT_TIMESTAMP).lessThan(date(yesterdaysNow)))
-                   .asField("heartbeats_earlier");
+                        .from(CHARGE_BOX)
+                        .where(date(CHARGE_BOX.LAST_HEARTBEAT_TIMESTAMP).lessThan(date(DSL.val(yesterdaysNow, jodaDateTimeType))))
+                        .asField("heartbeats_earlier");
 
         Record8<Integer, Integer, Integer, Integer, Integer, Integer, Integer, Integer> gs =
                 ctx.select(

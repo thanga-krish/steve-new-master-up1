@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -145,6 +145,10 @@ public class ChargePointHelperService {
         );
 
         return latestList;
+    }
+
+    public boolean isOnline(String chargeBoxId) {
+        return getConnectedJsonChargeBoxIds().contains(chargeBoxId);
     }
 
     public List<OcppJsonStatus> getOcppJsonStatus() {

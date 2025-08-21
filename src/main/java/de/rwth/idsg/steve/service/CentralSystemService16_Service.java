@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,10 @@
  */
 package de.rwth.idsg.steve.service;
 
+
+import de.rwth.idsg.steve.myconfig.CustomStopReasonStore;
+import de.rwth.idsg.steve.myconfig.TariffSessionCost;
+import de.rwth.idsg.steve.myconfig.WalletMonitorService;
 import de.rwth.idsg.steve.ocpp.OcppProtocol;
 import de.rwth.idsg.steve.repository.OcppServerRepository;
 import de.rwth.idsg.steve.repository.SettingsRepository;
@@ -56,12 +60,19 @@ import ocpp.cs._2015._10.StatusNotificationRequest;
 import ocpp.cs._2015._10.StatusNotificationResponse;
 import ocpp.cs._2015._10.StopTransactionRequest;
 import ocpp.cs._2015._10.StopTransactionResponse;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.joda.time.DateTime;
+import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+
+import static jooq.steve.db.Tables.CONNECTOR;
+import static jooq.steve.db.Tables.TRANSACTION_START;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -77,6 +88,9 @@ public class CentralSystemService16_Service {
     @Autowired private OcppTagService ocppTagService;
     @Autowired private ApplicationEventPublisher applicationEventPublisher;
     @Autowired private ChargePointHelperService chargePointHelperService;
+    @Autowired private CustomStopReasonStore customStopReasonStore;
+
+    @Autowired private DSLContext ctx;
 
     public BootNotificationResponse bootNotification(BootNotificationRequest parameters, String chargeBoxIdentity,
                                                      OcppProtocol ocppProtocol) {
@@ -201,7 +215,13 @@ public class CentralSystemService16_Service {
 
     public StopTransactionResponse stopTransaction(StopTransactionRequest parameters, String chargeBoxIdentity) {
         int transactionId = parameters.getTransactionId();
+        String idtag = parameters.getIdTag();
         String stopReason = parameters.isSetReason() ? parameters.getReason().value() : null;
+
+        if (customStopReasonStore.hasReason(transactionId)) {
+            String custom = customStopReasonStore.getAndRemoveReason(transactionId);
+            stopReason=custom;
+        }
 
         System.out.println("Stop transaction value :"+ parameters.getMeterStop());
         // Get the authorization info of the user, before making tx changes (will affectAuthorizationStatus)

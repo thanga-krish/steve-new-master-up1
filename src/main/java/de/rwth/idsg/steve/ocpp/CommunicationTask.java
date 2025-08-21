@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -105,7 +105,13 @@ public abstract class CommunicationTask<S extends ChargePointSelection, RESPONSE
     }
 
     public void addNewResponse(String chargeBoxId, String response) {
-        resultMap.get(chargeBoxId).setResponse(response);
+        RequestResult result = resultMap.get(chargeBoxId);
+        if (result != null) {
+            result.setResponse(response);
+        } else {
+            log.warn("No RequestResult found in resultMap for chargeBoxId '{}', cannot set response.", chargeBoxId);
+            return; // don’t crash, just log
+        }
 
         synchronized (lockObject) {
             if (resultSize == (errorCount.get() + responseCount.incrementAndGet())) {
@@ -119,10 +125,9 @@ public abstract class CommunicationTask<S extends ChargePointSelection, RESPONSE
         if (result != null) {
             result.setErrorMessage(errorMessage);
         } else {
-            log.warn("❌ No RequestResult found in resultMap for chargeBoxId '{}', cannot set error message.", chargeBoxId);
-            return; // optionally skip rest of logic
+            log.warn("No RequestResult found in resultMap for chargeBoxId '{}', cannot set error message.", chargeBoxId);
+            return;
         }
-
         synchronized (lockObject) {
             if (resultSize == (errorCount.incrementAndGet() + responseCount.get())) {
                 endTimestamp = DateTime.now();

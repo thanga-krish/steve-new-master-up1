@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package de.rwth.idsg.steve.ocpp.soap;
+
 
 import de.rwth.idsg.steve.myconfig.WebhookPayload;
 import de.rwth.idsg.steve.myconfig.WebhookSender;
@@ -55,6 +56,7 @@ import javax.xml.ws.Response;
 import javax.xml.ws.soap.Addressing;
 import javax.xml.ws.soap.SOAPBinding;
 import java.util.concurrent.Future;
+
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -116,7 +118,6 @@ public class CentralSystemService16_SoapServer implements CentralSystemService {
 
     @Override
     public StopTransactionResponse stopTransaction(StopTransactionRequest parameters, String chargeBoxIdentity) {
-
        System.out.println("CentralSystemService16_SoapServer class Stop Transaction Method Working ");
 
         return service.stopTransaction(parameters, chargeBoxIdentity);
@@ -258,4 +259,5 @@ public class CentralSystemService16_SoapServer implements CentralSystemService {
                                                         AsyncHandler<DiagnosticsStatusNotificationResponse> asyncHandler) {
         return null;
     }
+
 }

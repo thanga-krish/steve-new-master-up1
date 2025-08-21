@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,9 +23,7 @@ import com.google.common.util.concurrent.Striped;
 import de.rwth.idsg.steve.SteveException;
 
 //import de.rwth.idsg.steve.myconfig.RetrieveTransactionMeterValues;
-import de.rwth.idsg.steve.myconfig.TransactionMeterValues;
-import de.rwth.idsg.steve.myconfig.TransactionMeterValuesService;
-import de.rwth.idsg.steve.myconfig.WalletMonitorService;
+import de.rwth.idsg.steve.myconfig.*;
 import de.rwth.idsg.steve.ocpp.OcppProtocol;
 import de.rwth.idsg.steve.repository.OcppServerRepository;
 import de.rwth.idsg.steve.repository.ReservationRepository;
@@ -43,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 import ocpp.cs._2015._10.MeterValue;
 
 import ocpp.cs._2015._10.SampledValue;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDateTime;
 import org.jooq.DSLContext;
@@ -90,12 +89,16 @@ public class OcppServerRepositoryImpl implements OcppServerRepository {
     private final Striped<Lock> transactionTableLocks = Striped.lock(16);
 
     @Autowired
+    @Lazy
     private WalletMonitorService walletMonitorService;
-
     @Autowired
     private  TransactionMeterValuesService transactionMeterValuesService;
 
     private TransactionMeterValues transactionMeterValues;
+    @Autowired
+    private CustomStopReasonStore customStopReasonStore;
+    @Autowired private TariffSessionCost tariffSessionCost;
+
 
 //    @Autowired
 //    private RetrieveTransactionMeterValues retrieveTransactionMeterValues;
@@ -230,11 +233,22 @@ public class OcppServerRepositoryImpl implements OcppServerRepository {
                 insertIgnoreConnector(ctx, chargeBoxIdentity, connectorId);
                 int connectorPk = getConnectorPkFromConnector(ctx, chargeBoxIdentity, connectorId);
                 batchInsertMeterValues(ctx, list, connectorPk, transactionId);
+                // Fetch idTag using transactionId
+                String idTag = ctx.select(TRANSACTION_START.ID_TAG)
+                        .from(TRANSACTION_START)
+                        .where(TRANSACTION_START.TRANSACTION_PK.eq(transactionId))
+                        .fetchOneInto(String.class);
 
-                walletMonitorService.checkAndStopIfLowBalance(list, transactionId, connectorPk);
+                if (idTag != null) {
+                    tariffSessionCost.callPhpAndProcess(chargeBoxIdentity, idTag, connectorId, transactionId);
+                } else {
+                    log.warn("No idTag found for transactionId {}", transactionId);
+                }
+
+               // walletMonitorService.checkAndStopIfLowBalance(list, transactionId, connectorPk);
 
             } catch (Exception e) {
-                log.error("Exception occurred", e);
+                log.error("Exception occurred", e.getMessage());
             }
         });
     }
@@ -322,6 +336,17 @@ public class OcppServerRepositoryImpl implements OcppServerRepository {
 
     @Override
     public void updateTransaction(UpdateTransactionParams p) {
+        int transactionId = p.getTransactionId();
+
+        boolean alreadyStopped = ctx.fetchExists(
+                TRANSACTION_STOP,
+                TRANSACTION_STOP.TRANSACTION_PK.eq(transactionId)
+        );
+
+        if (alreadyStopped) {
+            System.out.println("Transaction already stopped, skipping update");
+            return;
+        }
 
         // -------------------------------------------------------------------------
         // Step 1: insert transaction stop data
@@ -387,10 +412,10 @@ public class OcppServerRepositoryImpl implements OcppServerRepository {
         Lock l = transactionTableLocks.get(p.getChargeBoxId());
         l.lock();
         try {
+            // 🔧 Relaxed check: ignore idTag – allow multiple devices using same idTag
             Record1<Integer> r = ctx.select(TRANSACTION_START.TRANSACTION_PK)
                     .from(TRANSACTION_START)
                     .where(TRANSACTION_START.CONNECTOR_PK.eq(connectorPkQuery))
-                    .and(TRANSACTION_START.ID_TAG.eq(p.getIdTag()))
                     .and(TRANSACTION_START.START_TIMESTAMP.eq(p.getStartTimestamp()))
                     .and(TRANSACTION_START.START_VALUE.eq(p.getStartMeterValue()))
                     .fetchOne();
@@ -399,6 +424,7 @@ public class OcppServerRepositoryImpl implements OcppServerRepository {
                 return new TransactionDataHolder(true, r.value1());
             }
 
+            // ✅ Always insert new transaction (only blocked if exact same connector/start time/start value)
             Integer transactionId = ctx.insertInto(TRANSACTION_START)
                     .set(TRANSACTION_START.EVENT_TIMESTAMP, p.getEventTimestamp())
                     .set(TRANSACTION_START.CONNECTOR_PK, connectorPkQuery)
@@ -409,7 +435,6 @@ public class OcppServerRepositoryImpl implements OcppServerRepository {
                     .fetchOne()
                     .getTransactionPk();
 
-            // Actually unnecessary, because JOOQ will throw an exception, if something goes wrong
             if (transactionId == null) {
                 throw new SteveException("Failed to INSERT transaction into database");
             }

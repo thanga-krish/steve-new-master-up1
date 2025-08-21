@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,14 +21,17 @@ package de.rwth.idsg.steve.ocpp.ws;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.rwth.idsg.steve.myconfig.AppContextProvider;
-import de.rwth.idsg.steve.myconfig.LogService;
-import de.rwth.idsg.steve.myconfig.OcppMessageTracker;
+import de.rwth.idsg.steve.myconfig.*;
+import de.rwth.idsg.steve.service.RfidTagService;
+import de.rwth.idsg.steve.web.controller.DataTransferHandler;
+import de.rwth.idsg.steve.web.controller.TariffController;
 import lombok.extern.slf4j.Slf4j;
-
-import org.jooq.DSLContext;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
+
+import java.io.EOFException;
+import java.net.SocketTimeoutException;
+import java.nio.channels.ClosedChannelException;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -80,23 +83,49 @@ public final class WebSocketLogger {
 
     public static void receivedText(String chargeBoxId, WebSocketSession session, String msg) {
         try {
+
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(msg);
 
             if (root.isArray() && root.size() >= 3) {
                 int messageType = root.get(0).asInt();
+
                 if (messageType == 2) { // CALL from charge point
                     String messageId = root.get(1).asText();
                     String event = root.get(2).asText();
-                    OcppMessageTracker.put(messageId, event); // ✅ Track the incoming CALL
+                    JsonNode payload = root.get(3);
+
+                    OcppMessageTracker.put(messageId, event);
+
+                    //Handle Authorize (extract RFID)
+                    if ("Authorize".equalsIgnoreCase(event) && payload != null && payload.has("idTag")) {
+                        String idTag = payload.get("idTag").asText();
+                        String userIdTag = idTag;
+                        RfidTagService rfidService = SpringUtils.getBean(RfidTagService.class);
+                        rfidService.storeRfidTag(idTag, userIdTag);
+                    }
+
+                    //Handle DataTransfer (extract MAC)
+                    if ("DataTransfer".equalsIgnoreCase(event)) {
+                        DataTransferHandler handler = SpringUtils.getBean(DataTransferHandler.class);
+                        handler.handleDataTransfer(payload, chargeBoxId);
+                    }
+                    if ("StartTransaction".equalsIgnoreCase(event) && payload != null && payload.has("idTag")) {
+                        String idTag = payload.get("idTag").asText();
+
+                        TariffController controller = SpringUtils.getBean(TariffController.class);
+                        controller.calculateWithPhpFetch(chargeBoxId, idTag);
+                    }
                 }
             }
         } catch (Exception e) {
             log.error("Failed to parse received message for tracking", e);
         }
-        log.info("[chargeBoxId={}, sessionId={}] Received: {}", chargeBoxId, session.getId(), msg);
+
+        //Save full raw log to DB
         String sessionId = session.getId();
         String direction = "Received by Server from " + chargeBoxId;
+        log.info("[chargeBoxId={}, sessionId={}] Received: {}", chargeBoxId, sessionId, msg);
         LogService.saveToDatabase(chargeBoxId, sessionId, msg, direction);
     }
 
@@ -112,7 +141,16 @@ public final class WebSocketLogger {
 
     public static void transportError(String chargeBoxId, WebSocketSession session, Throwable t) {
         if (log.isErrorEnabled()) {
-            log.error("[chargeBoxId=" + chargeBoxId + ", sessionId=" + session.getId() + "] Transport error", t);
+            if (t instanceof ClosedChannelException) {
+                log.warn("[chargeBoxId={} sessionId={}] WebSocket closed unexpectedly (ClosedChannelException)", chargeBoxId, session.getId());
+            } else if (t instanceof EOFException) {
+                log.warn("[chargeBoxId={} sessionId={}] Client disconnected abruptly (EOFException)", chargeBoxId, session.getId());
+            } else if (t instanceof SocketTimeoutException) {
+                log.warn("[chargeBoxId={} sessionId={}] WebSocket timeout", chargeBoxId, session.getId());
+            } else {
+                log.error("[chargeBoxId={} sessionId={}] Transport error", chargeBoxId, session.getId(), t);
+            }
+
         }
     }
 }

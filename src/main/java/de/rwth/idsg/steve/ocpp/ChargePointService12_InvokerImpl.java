@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,8 +35,11 @@ import de.rwth.idsg.steve.ocpp.ws.ocpp12.Ocpp12WebSocketEndpoint;
 import de.rwth.idsg.steve.ocpp.ws.pipeline.OutgoingCallPipeline;
 import de.rwth.idsg.steve.repository.dto.ChargePointSelect;
 import ocpp.cp._2010._08.ChargePointService;
+import ocpp.cp._2015._10.RemoteStartTransactionResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -118,12 +121,13 @@ public class ChargePointService12_InvokerImpl implements ChargePointService12_In
     }
 
     @Override
-    public void remoteStartTransaction(ChargePointSelect cp, RemoteStartTransactionTask task) {
+    public CompletableFuture<RemoteStartTransactionResponse> remoteStartTransaction(ChargePointSelect cp, RemoteStartTransactionTask task) {
         if (cp.isSoap()) {
             create(cp).remoteStartTransactionAsync(task.getOcpp12Request(), cp.getChargeBoxId(), task.getOcpp12Handler(cp.getChargeBoxId()));
         } else {
             runPipeline(cp, task);
         }
+        return null;
     }
 
     @Override

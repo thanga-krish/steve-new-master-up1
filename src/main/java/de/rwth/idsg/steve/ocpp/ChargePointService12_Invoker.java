@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,9 @@ import de.rwth.idsg.steve.ocpp.task.ResetTask;
 import de.rwth.idsg.steve.ocpp.task.UnlockConnectorTask;
 import de.rwth.idsg.steve.ocpp.task.UpdateFirmwareTask;
 import de.rwth.idsg.steve.repository.dto.ChargePointSelect;
+import ocpp.cp._2015._10.RemoteStartTransactionResponse;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -49,7 +52,7 @@ public interface ChargePointService12_Invoker {
 
     void changeConfiguration(ChargePointSelect cp, ChangeConfigurationTask task);
 
-    void remoteStartTransaction(ChargePointSelect cp, RemoteStartTransactionTask task);
+    CompletableFuture<RemoteStartTransactionResponse> remoteStartTransaction(ChargePointSelect cp, RemoteStartTransactionTask task);
 
     void remoteStopTransaction(ChargePointSelect cp, RemoteStopTransactionTask task);
 }

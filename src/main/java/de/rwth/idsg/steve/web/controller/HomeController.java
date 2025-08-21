@@ -1,6 +1,6 @@
 /*
  * SteVe - SteckdosenVerwaltung - https://github.com/steve-community/steve
- * Copyright (C) ${license.git.copyrightYears} SteVe Community Team
+ * Copyright (C) 2013-2025 SteVe Community Team
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -78,7 +78,7 @@ public class HomeController {
 
         List<ConnectorStatus> latestList = chargePointHelperService.getChargePointConnectorStatus(params);
         List<ConnectorStatus> filteredList = ConnectorStatusFilter.filterAndPreferZero(latestList);
-        // ✅ Actual filtering logic to exclude disconnected ones
+        // Actual filtering logic to exclude disconnected ones
         List<ConnectorStatus> updatedList = filteredList.stream()
                 .filter(cs -> !cs.isJsonAndDisconnected()) // remove disconnected
                 .collect(Collectors.toList());
